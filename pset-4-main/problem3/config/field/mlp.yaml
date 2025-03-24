@@ -1,0 +1,13 @@
+name: mlp
+
+# Specify null as the number of positional encoding octaves if no positional encoding
+# should be applied. The null becomes None in Python.
+positional_encoding_octaves: 6
+
+# You are free to change the number of hidden layers and the number of neurons in the hidden layers.
+# IF you have enough computational resources, you can increase the number of hidden layers and the number of neurons in the hidden layers.
+# num_hidden_layers: 2
+# d_hidden: 128
+
+num_hidden_layers: 4
+d_hidden: 256

@@ -1,0 +1,12 @@
+# mostly shared with problem-3
+einops
+jaxtyping
+beartype
+black
+matplotlib
+ruff
+scipy
+trimesh
+pytest
+tqdm
+hydra-core

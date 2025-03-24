@@ -1,0 +1,22 @@
+field:
+  name: mlp
+  positional_encoding_octaves: 6
+  num_hidden_layers: 4
+  d_hidden: 256
+dataset:
+  name: nerf
+  path: data/nerf_synthetic
+  scene: lego
+  repetitions_per_epoch: 96
+  scale_factor: 0.15
+  offset:
+  - 0.5
+  - 0.5
+  - 0.5
+nerf:
+  num_samples: 128
+num_iterations: 8192
+visualization_interval: 128
+learning_rate: 0.001
+batch_size: 512
+output_path: outputs
