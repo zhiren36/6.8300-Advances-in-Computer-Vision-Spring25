@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>MathJax Delimiters</title>
+
+    <!-- MathJax Configuration -->
+    <script>
+        window.MathJax = {
+            loader: {load: ['input/tex', 'output/chtml']},
+            tex: {
+                inlineMath: [['\\(', '\\)'], ['$', '$']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style type="text/css">
+        body {
+            background-color: #f5f9ff;
+            margin: 0;
+            padding: 0;
+        }
+        .content-margin-container {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            padding: 16px 0;
+        }
+        .main-content-block {
+            width: 100%;
+            max-width: 1100px;
+            background-color: #fff;
+            padding: 16px;
+            font-family: "HelveticaNeue-Light", Helvetica, Arial, sans-serif;
+            box-sizing: border-box;
+        }
+        img, .my-video {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 16px auto;
+        }
+        a:link, a:visited {
+            color: #0e7862;
+            text-decoration: none;
+        }
+        a:hover {
+            color: #24b597;
+        }
+        h1 {
+            font-size: 24px;
+            margin: 16px 0;
+        }
+        p {
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+        pre {
+            background: #f0f0f0;
+            padding: 12px;
+            overflow-x: auto;
+            margin-bottom: 16px;
+        }
+        code {
+            background: #f9f9f9;
+            padding: 2px 4px;
+            font-family: monospace;
+        }
+        .citation ol {
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="content-margin-container">
+        <div class="main-content-block">
+            <h1>Optimal Scheduling in Flow-based Generative Models</h1>
+            <p><strong>Zhi Ren</strong></p>
+            <p>Final project for 6.8300, Spring 2025, MIT</p>
+        </div>
+    </div>
+
+    <!-- Outline -->
+    <div class="content-margin-container">
+        <div class="main-content-block">
+            <h2>Outline</h2>
+            <ul>
+                <li><a href="#intro">Introduction</a></li>
+                <li><a href="#Motivations">Motivations</a></li>
+                <li><a href="#Literature-review">Literature review</a></li>
+                <li><a href="#Analytical-studies">Analytical studies</a></li>
+                <li><a href="#Sampling-with-optimal-schedule">Sampling with optimal schedule</a></li>
+                <li><a href="#Incorporate-schedule-in-learning">Learning with the optimal schedule</a></li>
+                <li><a href="#Conclusion">Conclusion and discussions</a></li>
+                <li><a href="#References">References</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Introduction -->
+    <div class="content-margin-container" id="intro">
+        <div class="main-content-block">
+            <h1>Introduction</h1>
+            <p>Sampling from complex distributions lies at the heart of computational statistics and machine learning. It underpins a wide range of applications—most notably in computer vision, where one often seeks to generate images (optionally conditioned on specific labels) by drawing samples from their underlying distribution. These machine learning models, which generate samples from a (learned) distribution, are commonly referred to as generative models. While numerous models have been proposed and the field of generative models has seen significant advancements, the challenge of efficient sampling and learning still remains. Perhaps a more fundamental question to ask is: among all the possible generative models, which one is optimal and what does optimality even mean here? In this blog post, we will explore the optimality of flow-based models, where optimality is defined in terms of the regularity of the underlying velocity field (see <a href="#Motivations">Motivations</a>).</p>
+            <p>A recurring theme in flow-based generative models is to represent a <em>transport map</em> that pushes forward a reference distribution &rho; to a target distribution &pi; through the time-one flow map of some ODE:</p>
+           \[
+\begin{cases}
+\frac{d}{dt}X(x,t) = f(X(x,t), t), \\
+X(x,0) = x,
+\end{cases}
+\]
+            <p>We denote the time-t flow map by $X^f(x,t)$ and in particular the time-one map $T^f$. The reference distribution $\rho$; is chosen a priori (e.g. uniform or Gaussian), and the target distribution $\pi$; is where we want to draw samples (e.g. images). Flow-based generative modeling learns f (often parameterized by a neural net) so that $T^f$ pushes $\rho$ to $\pi$.</p>
+
+            One can think of the reference distribution $\rho$ as something chosen a priori, and this is usually chosen to be a simple distribution we know how to sample from (for example, uniform distribution or standard Gaussian distribution) and the target distribution is where we actually want to draw samples (for example, images). The idea of flow-based generative modelling is then to learn the velocity field \(f\) (usually from a neural network class) such that the time-one flow map \(T^f\) pushes forward the reference distribution \(\rho\) to the target distribution \(\pi\). Typically, we have a finite collection of samples from $\pi$, which is our training data. 
+
+
+			   <p>There are two major schemes for learning the velocity field. On the one hand, we have <em>normalizing flows</em>
+				([1]), which learn the velocity field by minimizing the Kullback-Leibler divergence between the target distribution and the pushforward of the reference distribution; equivalently, this can be achieved by maximizing the log-likelihood over the training data. On the other hand, we have flow-matching and stochastic interpolant (see [2] and [3]), which pre-specifies a velocity field by conditional expectation and learns the target velocity field by a least square regression. However, as we observe (see e.g.[4]), regardless of the training scheme, there are many different ways to define the velocity field and the choice of the velocity field can have a significant impact on the performance of the generative model. In this blogpost, we shall explore the numerical implications for the theory of optimal velocity fields from [4] and show numerically how the introduction of a time reparameterization can improve regularity in the underlying velocity field. 
+			</p>
+        </div>
+    </div>
+
+    
+    <!-- Another Section with Video -->
+    <div class="content-margin-container" id="Motivations">
+        <div class="main-content-block">
+            <h1>Motivations</h1>
+            Compared to a direct parameterization of the displacement, flow-based models introduce an extra time variable that controls the evolution of measures over a fictitious time. It is observed in many works (see e.g. [5]) that this additional degree of freedom could be bad at times: as they could yield velocity fields with highly irregular trajectories. A widely used strategy to address irregular paths in practice is to seek <em>straight-line</em> trajectories interpolating $x$ and $T(x)$ for some transport map $T$; this can be achieved through regularization of a log-likelihood training objective ([5]) or via methods that learn the velocity field directly via least squares ([6]). Straight-line trajectories are desirable in the sense that they minimize numerical integration errors; an explicit Euler scheme with a step size of one is exact if the trajectories are exactly straight. Yet such constructions essentially do <em>NOT</em> exploit the time axis, and invite the question of why be dynamic in the first place. Moreover, it is observed in [4] that straight-line trajectories may not create space-time velocity fields $v(x,t)$ that are easy to approximate: in general, near regions of strong concentration or dilation, the velocity field realizing straight-line trajectories can have very large spatial derivatives. We shall observe this singularity forming behavior in the numerical experiments in later sections. 
+
+            Given the above discussion, an object of study we focus on in this blogpost is the spatial Lipschitz constant of the velocity field, \[\textnormal{Lip}(v(\cdot, t)) = \sup_{x \in \Omega_t} \|\nabla_x v(x, t)\|_{\textnormal{op}},\]
+
+            Following the ideas from [4], we shall seek a time reparameterization, which we call a <em>schedule</em>, $\tau(t):[0,1]\rightarrow[0,1]$ such that the velocity field is straight-line trajectories in the $\tau$ coordinate, and reduces the worst-case spatial Lipschitz constant of the velocity field in the $t$ coordinate. It is shown in [4] that such a schedule achieves a balance between approximation error and numerical integration error and results in an exponential reduction in the Lipschitz constant. We shall also explore this numerically in this blogpost. 
+
+
+        </div>
+    </div>
+
+
+    <div class="content-margin-container" id="Literature-review">
+        <div class="main-content-block">
+            <h1>Literature Review</h1>
+            The problem of finding optimal schedules has drawn much attention lately, mostly in the context of <em>diffusion models</em> ([7]).  [8] proposes a time-dilated stochastic interpolant that is shown to recover the correct parameters in Gaussian mixture distributions by running the corresponding probabilistic ODE using a uniform grid of size $\Theta(1)$. We note the time-dilation considered in their work is a <em>noising schedule</em> that specifies the amount of noise injection and scaling in the forward process; this notion of schedule is different from the one considered in this work, which specifies how fast particles travel along its trajectories. We also comment that explicit forms of the schedule and theoretical analysis are only provided for the case of Gaussian mixtures, which is quite limiting. [9] devises an algorithm that iteratively computes an optimal <em>discretization schedule</em> $\mathcal T = \{t_1 = 0,\cdots,t_n = T\}$ minimizing certain energy functional that measures the cost of traversing a probability path. The optimal schedule travels a diffusion path that is a geodesic in the space of probability distributions at constant speed. We note that while closely related, the discretization schedule they consider is different from the time re-parametrization $\tau$ considered in this work. In addition, theoretical guarantees and explicit form for the optimal schedule are only obtained in the limiting case when $T\rightarrow\infty$. [10] also studies the optimal discretization schedule, where, in contrast, optimality is taken to mean the schedule that minimizes the distribution approximation error from numerical integration using the Euler scheme. The optimal schedule is computed explicitly in the simple case where the initial distribution is isotropic Gaussian and the noising schedule $\sigma(t) = s(t) = 1$ in the SDE. [11] proposes a novel iterative diffusion optimization algorithm where the optimal control is learned by solving a least-squares regression problem. The goal is to fit a random matching vector field which depends on a family of matrix-valued time re-parameterizations $M_t$ that are optimized at the same time. The re-parameterization aims to produce a velocity field that would give the minimal variance in training objective. We note that no explicit form of the optimal re-parameterization is given, except to say it satisfies a certain linear equation in infinite-dimensional spaces. [12] considers the reward fine-tuning of generative models and introduces a <em>memoryless noise schedule</em> that removes the dependency between noise variables and the generated samples. We note that while explicit form of the optimal schedule is given, their goal of introducing the time re-parameterization is rather different, which is to obtain provable convergence to a tilted distribution that captures human preference. 
+        </div>
+    </div>
+
+
+
+
+
+
+
+    <!-- Implications & Limitations -->
+    <div class="content-margin-container" id="#Analytical-studies">
+        <div class="main-content-block">
+            <h1>An analytical case study</h1>
+
+            In this section, we consider a simple case where we push a diffuse Gaussian distribution at $t=0$ to a narrow Gaussian distribution at $t=1$ via a time-dependent velocity field. In this simple case, the velocity field with straight-line trajectories can be computed analytically as below: 
+
+            <p>
+                Let's assume $\rho(x) = \mathcal N(0, \sigma_0^2)$ and $\pi(x) = \mathcal N(0, \sigma_1^2)$, where $\sigma_0$ is large and $\sigma_1$ is small. Then the (unique) transport map $T$ that pushes forward $\rho$ to $\pi$ is given by $T(x_0) = \frac{\sigma_1}{\sigma_0}x_0$. 
+                
+                The velocity field $v(x,t)$ with straight-line trajectories satisfies:
+
+                \[f((1-t)x_0 + t\frac{\sigma_1}{\sigma_0}x_0, t) = \frac{\sigma_1}{\sigma_0}x_0 - x_0\]
+
+                and we can thus solve to obtain 
+                \[ f(x, t) = \left(\frac{\sigma_1}{\sigma_0}-1\right)\frac{x}{(1-t) + t\frac{\sigma_1}{\sigma_0}}. \]
+
+            </p>
+            
+            <p>
+
+                In the following numerical illustration, we work with distributions $\sigma_0 = 10$ and $\sigma_1 = 0.1$. 
+
+                <img src="images/Trajectories_Analytical_Velocity_Fields.png" alt="Site logo">
+
+                We see in the above plot that there is a clear singularity forming phenomenon near $t = 1$ as particples get more and more concentrated. It is also not hard to see that the Lipschitz constant of the velocity field blows up when $\sigma_1\rightarrow\infty$.
+
+
+
+                Using Theorem 6 of [4], we derive that the optimal schedule takes the form $\tau(t) = \frac{(\sigma_1/\sigma_0)^t-1}{\sigma_1/\sigma_0 - 1}$, which satisfies $\tau(0) = 0, \tau(1) = 1$. If we substitute in the optimal schedule, we can see that the velocity field becomes:
+
+
+                <img src="images/trajectories_analytical_with_optimal_tau.png" alt="Site logo">
+
+
+                We see the trajectories start bending starting from $t = 0$, which averages out the worst case spatial Lipschitz constant over the time interval $[0,1]$.
+
+                
+            </p>
+
+
+
+        </div>
+    </div>
+
+
+    <div class="content-margin-container" id="#Sampling-with-optimal-schedule">
+        <div class="main-content-block">
+            <h1>Sampling with optimal schedule</h1>
+
+            In this section, we adopt the framework of flow matching. Let's consider a linear interpolation 
+            $(1-t)x_0 + tx_1$ where $x_0\sim\rho$ and $x_1\sim\pi$. By [2], the flow matching velocity field is simply $\mathbb E_{t, X_0\sim\rho, X_1\sim\pi}\|f^\theta_t(x,t) - (X_1 - X_0)\|_2^2$. With the optimal schedule pre-computed, we learn the velocity field with the original flow-matching objective, but sample with the optimal schedule. The samples generated at each timestep are plotted below. 
+
+            <img src="images/Samples_trivial_schedule.png" alt="Site logo">
+
+
+            <img src="images/Samples_optimal_schedule.png" alt="Site logo">
+
+
+            It can be observed that sample qualities are much better with the optimal schedule: in the first row, samples are much concentrated near $t = 1$ than it should be, with a small fraction of other samples spread out across a large range, while the second row looks much more similar to a Gaussian distribution. The pathological behaviors with the trivial schedule is that velocity field with straight line trajectories is too singular near $t= 1$ and would reuqire much more time steps to generate high quality samples, while with an optimal schedule, velocity field and its trajectories are smoother near $t = 1$ and is able to generate better samples. 
+
+
+
+
+        </div>
+    </div>
+
+
+    <div class="content-margin-container" id="#Incorporate-schedule-in-learning">
+        <div class="main-content-block">
+            <h1>Learning the optimal schedule</h1>
+            <p>
+            While the sampling quality we demonstrate above looks promising, one major problem with the optimal schedule computed using results in [4] is that its computation requires maximum and minimal singular values of $\nabla T^f(x)$, which in practice we do not have access to. One attemp we tried in this project is to develop an iterative scheme to learn the optimal schedule, together with the velocity field. The idea is that we can use the learned velocity field to compute the optimal schedule by estimating the corresponding singular values and we can then use the optimal schedule to re-compute the velocity field, and repeat this process until convergence. The algorithm is summarized below. 
+        </p>
+
+
+        Algorithm: Alternating Optimization of Flow and Schedule</h1>
+        <ol>
+          <li><strong>Initialize</strong>
+            <ul>
+              <li>Set iteration counter $k = 0$.</li>
+              <li>Choose trivial schedule $\tau^{(0)}(t) = t$ for $t\in[0,1]$.</li>
+            </ul>
+          </li>
+          <li><strong>Repeat until convergence</strong> (e.g. $\lVert \tau^{(k+1)} - \tau^{(k)}\rVert_\infty < \varepsilon$):
+            <ol type="a">
+              <li>
+                <strong>Flow‐fit step</strong>
+                
+      For many minibatches:
+        1. Sample $x_0\sim\mathcal{N}(0,\sigma_0^2)$,  $x_1\sim\mathcal{N}(0,\sigma_1^2)$,  $t\sim U[0,1]$
+        2. Compute $\tau_k = \tau^{(k)}(t)$
+        3. Form $x_t = (1 - \tau_k)\,x_0 + \tau_k\,x_1$
+        4. Train velocity net $g_\theta$ to minimize
+            $\displaystyle \mathbb{E}_{x_0,x_1,t}\bigl[\|\,f_\theta(x_t,\tau_k) - (x_1 - x_0)\|^2\bigr]$
+                
+              </li>
+              <li>
+                <strong>Spectral‐analysis step</strong>
+                1. Samples point $x_i$ from the distribution at $t = 1$, and estimate the spectrum of 
+                $\nabla T^{f_\theta}$ 2. The maximum singular value can be estimated by $\max_{i, j}\frac{|T^{f_\theta}(x_i) - T^{f_\theta}(x_j)|}{|x_i - x_j|}$ and the minimal value can be estimated by $\max_{i, j}\frac{|T^{-f_\theta}(x_i) - T^{-f_\theta}(x_j)|}{|x_i - x_j|}$ where $T^{-f_\theta}$ is the inverse flow that can be obtained by integrating the ODE backwards in time. 3. Compute the optimal schedule based on Theorem 6 of [4]. 
+                
+      
+                
+              </li>
+            </ol>
+          </li>
+          <li><strong>Increment</strong> $k\leftarrow k+1$ and go back to step 2.</li>
+          <li><strong>Return</strong> the final flow $g_\theta$ and schedule $\tau^{(k)}(t)$.</li>
+        </ol>
+
+
+        The scheduled learned from the above algorithm is plotted below. 
+
+        <img src="images/learned_tau.png" alt="Site logo">
+
+
+        The learned schedule exhibit similar concavity/convexity properties as the theoretical optimal schedule, but we do run into some stability issues and the algorithm failed to converge (even after we enforced structural information about the flow, e.g. making the flow autoregressive, in which case the transport map is unique).  We plan to conduct more investigations in the future. 
+
+
+
+        </div>
+    </div>
+
+    <div class="content-margin-container" id="#Conclusion">
+        <div class="main-content-block">
+            <h1>Conclusion and discussions</h1>
+            The problem of optimal schedule in flow-based generative models or dynamic representation of transports is a very portant problem for practical applications. In this blog post, we study <em>optimality</em> from the perspective of regularity of underlying velocity field and show that the introduction of a time re-parameterization can help reduce the worst-case spatial Lipschitz constant of the velocity field and improve sample quality. We also proposed an iterative scheme to learn the optimal schedule together with the velocity field, which is an interesting direction for future work. Finally, while numerical experiments are only conducted on toy distributions (Gaussians) in this blogpost, it is worth noting that the theory of optimal schedule from [4] is not limited to Gaussian distributions and can be applied to more complicated distributions (such as distribution of images) and we shall investigate them in the future. 
+
+
+
+        </div>
+    </div>
+
+
+    <!-- References -->
+    <div class="content-margin-container" id="References">
+        <div class="main-content-block citation">
+            <h2>References</h2>
+            <ol>
+                <li id="normalizing_flows"><a href="https://arxiv.org/abs/1908.09257">Normalizing Flows: An Introduction and Review of Current Methods</a> (Kobyzev et al., 2021)</li>
+                <li id="flow_matching"><a href="https://arxiv.org/abs/2210.02747">Flow Matching for Generative Modeling</a> (Lipman et al., ICLR 2023)</li>
+                <li id="stochastic_interpolants"><a href="https://arxiv.org/abs/2210.02747">Building Normalizing Flows with Stochastic Interpolants</a> (M. Albergo and E. Vanden-Eijnden, ICLR 2023)</li>
+                <li id="optimal_scheduling"><a href="https://arxiv.org/abs/2504.14425">Optimal Scheduling of Dynamic Transport</a> P. Tsimpos, Z. Ren, J. Zech, and Y. Marzouk, to appear in Conference on Learning Theory (COLT) 2025 </li>
+                <li id="OT_flow"><a href="https://arxiv.org/abs/2006.00104">OT-Flow: Fast and accurate continuous normalizing flows via optimal transport</a> D. Onken, S. W. Fung, X. Li, and L. Ruthotto. In Proceedings of the AAAI Conference on Artificial Intelligence,
+                volume 35, pages 9223–9232, 2021.</li>
+                <li id="flow_straight"><a href="https://arxiv.org/abs/2209.03003">Flow straight and fast: Learning to generate and transfer data with
+                    rectified flow.</a> X. Liu, C. Gong, and Q. Liu. arXiv:2209.03003, 2022.</li>
+
+                <li id="diffusion"><a href="https://arxiv.org/abs/2011.13456">Score-based
+                    generative modeling through stochastic differential equations.
+                        </a> Y. Song, J. Sohl-Dickstein, D. P. Kingma, A. Kumar, S. Ermon, and B. Poole arXiv:2209.03003, 2022.</li>
+                <li id="Opt_Noise_Schedule"><a href="https://arxiv.org/abs/2501.00988">Optimizing noise
+                    schedules of generative models in high dimensionss. 
+                                </a> S. Aranguri, G. Biroli, M. Mezard, and E. Vanden-Eijnden.arXiv:2209.03003, 2025.</li>
+                <li id="Score_optimal"><a href="https://arxiv.org/abs/2412.07877">Score-optimal
+                    diffusion schedules. 
+                                </a> C. Williams, A. Campbell, A. Doucet, and S. Syed. CoRR abs/2412.07877, 2022.</li>
+                <li id="Align your steps"><a href="https://arxiv.org/abs/2412.07877">Align your steps: Optimizing sampling schedules in diffusion models. 
+                                </a> A. Sabour, S. Fidler, and K. Kreis. in Forty-first International Conference on Machine Learning, ICML
+                                2024, Vienna, Austria, July 21-27, 2024. OpenReview.net, 2024</li>
+            <li id="Stochastic
+            optimal control matching."><a href="https://arxiv.org/abs/2312.02027">Stochastic
+                optimal control matching.
+            </a> C. Domingo-Enrich, J. Han, B. Amos, J. Bruna, and R. T. Q. Chen CoRR, abs/2312.02027, 2023</li>
+            <li id="adjoint matching"><a href="https://arxiv.org/abs/2312.02027">Adjoint matching:
+                Fine-tuning flow and diffusion generative models with memoryless stochastic optimal control.
+            </a> C. Domingo-Enrich, M. Drozdzal, B. Karrer, and R. T. Q. Chen CoRR, abs/2409.08861, 2024</li>
+
+           
+
+                                
+                                 
+                
+
+                    
+            </ol>
+        </div>
+    </div>
+</body>
+</html>
